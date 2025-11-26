@@ -19,8 +19,17 @@ Servizio Node.js containerizzato che legge periodicamente i costi dei servizi AW
 - Node.js 20+
 - Docker
 - Kubernetes cluster
-- Account AWS con permessi su Cost Explorer
+- **Account AWS con IAM User/Role** ([Guida Setup AWS →](AWS_IAM_SETUP.md))
 - Kafka cluster
+
+### ⚡ Setup Rapido AWS
+
+```bash
+# Script automatico per creare IAM User e Policy
+./scripts/setup-aws-iam.sh
+```
+
+📖 Per dettagli completi vedi [AWS_IAM_SETUP.md](AWS_IAM_SETUP.md)
 
 ## 🚀 Quick Start
 
@@ -102,6 +111,8 @@ I messaggi seguono il formato NETMON standard:
 
 ## 🔐 Permessi AWS Richiesti
 
+Policy IAM minima necessaria:
+
 ```json
 {
   "Version": "2012-10-17",
@@ -116,6 +127,12 @@ I messaggi seguono il formato NETMON standard:
   ]
 }
 ```
+
+📖 **Guida completa configurazione AWS:** [AWS_IAM_SETUP.md](AWS_IAM_SETUP.md)
+- Creazione IAM User con Access Keys
+- Configurazione IAM Role con IRSA (per EKS)
+- Script automatico di setup
+- Best practices di sicurezza
 
 ## 📝 Licenza
 

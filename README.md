@@ -76,31 +76,29 @@ kubectl logs -n monitoring -l app=aws-cost-service -f
 - `FETCH_INTERVAL_MINUTES`: Intervallo in minuti (default: `60`)
 - `GRANULARITY`: `DAILY`, `MONTHLY`, `HOURLY` (default: `DAILY`)
 
-## 📊 Formato Messaggi Kafka
+## 📊 Formato Messaggi Kafka (NETMON)
+
+I messaggi seguono il formato NETMON standard:
 
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "period": {
-    "start": "2024-01-14",
-    "end": "2024-01-15"
-  },
-  "service": "Amazon EC2",
-  "cost": {
-    "amount": 123.45,
-    "currency": "USD"
-  },
-  "usage": {
-    "quantity": 720.0,
-    "unit": "Hrs"
-  },
-  "metadata": {
-    "granularity": "DAILY",
-    "groupBy": "SERVICE",
-    "region": "eu-west-1"
-  }
+  "_L7_PROTO": "100",
+  "_L7_PROTO_NAME": "AWS_EC2",
+  "_L7_PROTO_CATEGORY": "Compute",
+  "_IP": "0.0.0.0",
+  "_VLAN": "AWS",
+  "_DIR": 0,
+  "_SIM": "000000000000",
+  "_DATE": 1705190400,
+  "_BYTES": 12345
 }
 ```
+
+- `_L7_PROTO`: Codice servizio AWS (100=EC2, 101=S3, 102=RDS, ecc.)
+- `_BYTES`: Costo moltiplicato per 100 senza decimali ($123.45 → 12345)
+- `_DATE`: Timestamp Unix del periodo
+
+📖 Vedi [NETMON_FORMAT.md](NETMON_FORMAT.md) per la documentazione completa
 
 ## 🔐 Permessi AWS Richiesti
 

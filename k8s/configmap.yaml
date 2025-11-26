@@ -7,13 +7,26 @@ metadata:
     app: aws-cost-service
     component: configuration
 data:
+  # AWS Configuration
   AWS_REGION: "eu-west-1"
+  
+  # Kafka Configuration
   KAFKA_BROKERS: "kafka-service.kafka.svc.cluster.local:9092"
   KAFKA_CLIENT_ID: "aws-cost-service"
   KAFKA_TOPIC: "aws-costs"
   KAFKA_SSL: "false"
+  
+  # Service Configuration
   FETCH_INTERVAL_MINUTES: "60"
   LOOKBACK_DAYS: "1"
   GRANULARITY: "DAILY"
   GROUP_BY: "SERVICE"
+  
+  # NETMON Configuration
+  NETMON_IP: "0.0.0.0"
+  NETMON_VLAN: "AWS"
+  NETMON_SIM: "000000000000"
+  NETMON_DIR: "0"
+  
+  # Logging
   LOG_LEVEL: "info"

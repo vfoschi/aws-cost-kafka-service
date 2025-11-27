@@ -1,121 +1,64 @@
-# Riepilogo Modifiche - Formato NETMON
+# Changelog
 
-## 📋 Modifiche Implementate
+## [1.1.0] - 2024-11-27
 
-### 1. Struttura Messaggio JSON
-Il formato è stato cambiato da struttura gerarchica a formato NETMON flat:
+### 🎯 Feature Principale: Calcolo Differenziale dei Costi
 
-**PRIMA:**
-```json
-{
-  "timestamp": "...",
-  "period": { "start": "...", "end": "..." },
-  "service": "Amazon EC2",
-  "cost": { "amount": 123.45, "currency": "USD" },
-  ...
-}
+#### Added
+- **Sistema di cache in-memory** per tracciare costi precedenti
+- **Calcolo automatico delle differenze** tra letture successive
+- Pubblicazione solo dell'**incremento di costo** invece del totale
+- Skip automatico messaggi quando differenza = 0
+- Logging dettagliato delle differenze calcolate
+
+#### Changed
+- Campo `_BYTES` ora contiene la **differenza** di costo × 100
+- Prima pubblicazione: costo totale (cache vuota)
+- Letture successive: solo incremento
+
+#### Example
+```
+Lettura 1: EC2 = $10.50 → Pubblica: 1050 bytes
+Lettura 2: EC2 = $10.75 → Pubblica: 25 bytes (+$0.25)
+Lettura 3: EC2 = $11.00 → Pubblica: 25 bytes (+$0.25)
 ```
 
-**DOPO (NETMON):**
-```json
-{
-  "_L7_PROTO": "100",
-  "_L7_PROTO_NAME": "AWS_EC2",
-  "_L7_PROTO_CATEGORY": "Compute",
-  "_IP": "0.0.0.0",
-  "_VLAN": "AWS",
-  "_DIR": 0,
-  "_SIM": "000000000000",
-  "_DATE": 1705190400,
-  "_BYTES": 12345
-}
-```
+#### Documentation
+- Added `docs/DIFFERENTIAL_COST_CALCULATION.md` - Guida completa
+- Updated README.md con sezione calcolo differenziale
+- Updated NETMON_FORMAT.md con esempio differenziale
 
-### 2. Mapping Servizi AWS → Protocolli
+---
 
-Implementato mapping dei principali servizi AWS:
+## [1.0.0] - 2024-11-27
 
-| Servizio | Codice | Nome | Categoria |
-|----------|--------|------|-----------|
-| Amazon EC2 | 100 | AWS_EC2 | Compute |
-| Amazon S3 | 101 | AWS_S3 | Storage |
-| Amazon RDS | 102 | AWS_RDS | Database |
-| Amazon DynamoDB | 103 | AWS_DynamoDB | Database |
-| AWS Lambda | 104 | AWS_Lambda | Compute |
-| Amazon CloudFront | 105 | AWS_CloudFront | CDN |
-| Amazon ECS | 106 | AWS_ECS | Compute |
-| Amazon EKS | 107 | AWS_EKS | Compute |
-| Amazon ElastiCache | 108 | AWS_ElastiCache | Cache |
-| Amazon VPC | 109 | AWS_VPC | Network |
-| Amazon Route 53 | 110 | AWS_Route53 | DNS |
-| AWS Config | 111 | AWS_Config | Management |
-| Amazon CloudWatch | 112 | AWS_CloudWatch | Monitoring |
-| Amazon SNS | 113 | AWS_SNS | Messaging |
-| Amazon SQS | 114 | AWS_SQS | Messaging |
-| Amazon Kinesis | 115 | AWS_Kinesis | Streaming |
-| AWS KMS | 116 | AWS_KMS | Security |
-| Altri | 199 | AWS_OTHER | Other |
+### Initial Release
 
-### 3. Calcolo Campo _BYTES
+#### Features
+- Lettura costi AWS Cost Explorer API
+- Pubblicazione messaggi Kafka formato NETMON
+- Mapping servizi AWS a protocolli L7
+- Supporto Docker multi-stage
+- Configurazione Kubernetes completa
+- Supporto IAM User e IRSA (EKS)
+- Intervalli configurabili
+- Logging strutturato con Pino
 
-Il costo viene convertito secondo la formula:
-```javascript
-const costBytes = Math.round(costAmount * 100);
-```
+#### Documentation
+- README.md completo
+- AWS_IAM_SETUP.md - Setup IAM dettagliato
+- NETMON_FORMAT.md - Formato messaggi
+- QUICKSTART.md - Setup rapido
+- AWS_GRANULARITY.md - Guida granularità
+- AWS_CLI_PROFILES.md - Profili multipli
 
-Esempi:
-- $123.45 → 12345
-- $0.50 → 50
-- $1234.56 → 123456
+#### Scripts
+- setup-aws-iam.sh - Automazione IAM
+- setup-aws-iam-with-profile.sh - Con profili
 
-### 4. Parametri NETMON Configurabili
-
-Nuove variabili d'ambiente:
-- `NETMON_IP`: IP sorgente (default: 0.0.0.0)
-- `NETMON_VLAN`: Identificativo VLAN (default: AWS)
-- `NETMON_SIM`: Numero SIM (default: 000000000000)
-- `NETMON_DIR`: Direzione traffico (default: 0)
-
-### 5. File Aggiornati
-
-- ✅ `src/index.js` - Logica di trasformazione e mapping
-- ✅ `k8s/configmap.yaml` - Parametri NETMON aggiunti
-- ✅ `.env.example` - Template con nuovi parametri
-- ✅ `README.md` - Documentazione aggiornata
-- ✅ `NETMON_FORMAT.md` - Documentazione formato completa
-- ✅ `test-netmon-format.js` - Script di test
-
-## 🧪 Test
-
-Esegui il test locale:
-```bash
-node test-netmon-format.js
-```
-
-Output atteso:
-```
-Message 1:
-Key: Amazon EC2-2024-01-14
-Value:
-{
-  "_L7_PROTO": "100",
-  "_L7_PROTO_NAME": "AWS_EC2",
-  "_L7_PROTO_CATEGORY": "Compute",
-  "_IP": "0.0.0.0",
-  "_VLAN": "AWS",
-  "_DIR": 0,
-  "_SIM": "000000000000",
-  "_DATE": 1705190400,
-  "_BYTES": 12345
-}
-```
-
-## 📦 Deploy
-
-Nessuna modifica necessaria al deployment Kubernetes esistente.
-I parametri NETMON sono già inclusi nel ConfigMap.
-
-## 🔄 Compatibilità
-
-⚠️ **Breaking Change**: Il formato dei messaggi è completamente diverso.
-I consumer Kafka devono essere aggiornati per gestire il nuovo formato NETMON.
+#### Configuration
+- .env.example
+- k8s/configmap.yaml
+- k8s/deployment.yaml
+- k8s/secret.yaml.example
+- k8s/serviceaccount.yaml

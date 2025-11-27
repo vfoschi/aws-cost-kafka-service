@@ -74,6 +74,10 @@ if (config.kafka.ssl) {
 const kafka = new Kafka(kafkaConfig);
 const producer = kafka.producer();
 
+// Cache per tracciare i costi precedenti e calcolare le differenze
+// Struttura: { "service-date": lastCostAmount }
+const costCache = new Map();
+
 /**
  * Mappa i servizi AWS a codici L7_PROTO
  * Estendere questa mappa per aggiungere nuovi servizi
@@ -162,6 +166,7 @@ async function fetchAWSCosts() {
 
 /**
  * Trasforma i dati AWS in formato NETMON per Kafka
+ * Calcola la DIFFERENZA rispetto all'ultima lettura
  * Formato richiesto:
  * {
  *   "_L7_PROTO": "91",
@@ -187,13 +192,36 @@ function transformCostData(awsResponse) {
     
     period.Groups.forEach(group => {
       const serviceName = group.Keys[0];
-      const costAmount = parseFloat(group.Metrics.UnblendedCost.Amount);
+      const currentCostAmount = parseFloat(group.Metrics.UnblendedCost.Amount);
+      
+      // Chiave univoca per la cache: service-date
+      const cacheKey = `${serviceName}-${periodStart}`;
+      
+      // Recupera il costo precedente dalla cache
+      const previousCostAmount = costCache.get(cacheKey) || 0;
+      
+      // Calcola la DIFFERENZA
+      const costDifference = currentCostAmount - previousCostAmount;
+      
+      // Aggiorna la cache con il nuovo valore
+      costCache.set(cacheKey, currentCostAmount);
+      
+      // Se la differenza è zero o negativa, skip (nessun nuovo costo)
+      if (costDifference <= 0) {
+        logger.debug({
+          service: serviceName,
+          current: currentCostAmount,
+          previous: previousCostAmount,
+          difference: costDifference
+        }, 'No cost increase, skipping message');
+        return;
+      }
       
       // Ottieni i dati del protocollo per il servizio
       const serviceProto = getServiceProto(serviceName);
       
-      // Converti il costo in formato richiesto (moltiplicato per 100, senza decimali)
-      const costBytes = Math.round(costAmount * 100);
+      // Converti la DIFFERENZA in formato richiesto (moltiplicato per 100, senza decimali)
+      const costBytes = Math.round(costDifference * 100);
       
       // Crea il messaggio in formato NETMON
       const message = {
@@ -213,13 +241,14 @@ function transformCostData(awsResponse) {
         value: JSON.stringify(message)
       });
       
-      logger.debug({
+      logger.info({
         service: serviceName,
-        cost: costAmount,
+        currentCost: currentCostAmount,
+        previousCost: previousCostAmount,
+        difference: costDifference,
         bytes: costBytes,
-        proto: serviceProto.proto,
-        protoName: serviceProto.name
-      }, 'Transformed cost data');
+        proto: serviceProto.proto
+      }, 'Cost difference calculated and message created');
     });
   });
   

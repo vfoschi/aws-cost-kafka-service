@@ -5,8 +5,9 @@ Servizio Node.js containerizzato che legge periodicamente i costi dei servizi AW
 ## 🎯 Caratteristiche
 
 - ✅ Lettura automatica dei costi AWS tramite Cost Explorer API
+- ✅ **Calcolo differenziale**: Pubblica solo l'incremento di costo tra letture successive
 - ✅ Pubblicazione strutturata su Kafka con formato JSON
-- ✅ Intervalli di esecuzione configurabili
+- ✅ Intervalli di esecuzione configurabili (da 5 minuti in su)
 - ✅ Supporto per SASL/SSL su Kafka
 - ✅ Logging strutturato con Pino
 - ✅ Graceful shutdown
@@ -87,7 +88,7 @@ kubectl logs -n monitoring -l app=aws-cost-service -f
 
 ## 📊 Formato Messaggi Kafka (NETMON)
 
-I messaggi seguono il formato NETMON standard:
+I messaggi seguono il formato NETMON standard con **calcolo differenziale**:
 
 ```json
 {
@@ -99,15 +100,28 @@ I messaggi seguono il formato NETMON standard:
   "_DIR": 0,
   "_SIM": "000000000000",
   "_DATE": 1705190400,
-  "_BYTES": 12345
+  "_BYTES": 25
 }
 ```
 
 - `_L7_PROTO`: Codice servizio AWS (100=EC2, 101=S3, 102=RDS, ecc.)
-- `_BYTES`: Costo moltiplicato per 100 senza decimali ($123.45 → 12345)
+- `_BYTES`: **Differenza di costo** × 100 senza decimali (es. $0.25 → 25)
 - `_DATE`: Timestamp Unix del periodo
 
-📖 Vedi [NETMON_FORMAT.md](NETMON_FORMAT.md) per la documentazione completa
+### 🔄 Calcolo Differenziale
+
+Il servizio pubblica solo l'**incremento** rispetto all'ultima lettura:
+
+```
+08:00 → AWS EC2 = $10.50 → Pubblica: 1050 bytes
+08:05 → AWS EC2 = $10.75 → Pubblica: 25 bytes   (+$0.25)
+08:10 → AWS EC2 = $11.00 → Pubblica: 25 bytes   (+$0.25)
+08:15 → AWS EC2 = $11.00 → Skip (nessun cambio)
+```
+
+📖 Vedi [DIFFERENTIAL_COST_CALCULATION.md](docs/DIFFERENTIAL_COST_CALCULATION.md) per dettagli completi
+
+📖 Vedi [NETMON_FORMAT.md](NETMON_FORMAT.md) per la documentazione completa del formato
 
 ## 🔐 Permessi AWS Richiesti
 

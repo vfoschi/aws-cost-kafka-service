@@ -17,10 +17,10 @@ data:
   KAFKA_SSL: "false"
   
   # Service Configuration
-  FETCH_INTERVAL_MINUTES: "60"
-  LOOKBACK_DAYS: "1"
-  GRANULARITY: "DAILY"
-  GROUP_BY: "SERVICE"
+  FETCH_INTERVAL_MINUTES: "5"      # Fetch ogni 5 minuti (costi AWS si aggiornano continuamente)
+  LOOKBACK_DAYS: "1"               # Solo ultimo giorno
+  GRANULARITY: "DAILY"             # DEVE rimanere DAILY (limitazione AWS Cost Explorer)
+  GROUP_BY: "SERVICE"              # Raggruppa per servizio AWS
   
   # NETMON Configuration
   NETMON_IP: "0.0.0.0"
